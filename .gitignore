@@ -1,0 +1,16 @@
+# Compiled Java class files
+bin/
+*.class
+
+# Application Output and Data
+data/
+Screenshots/
+Recordings/
+
+# Third-party tools and binaries
+tools/
+
+
+# OS generated files
+.DS_Store
+Thumbs.db
