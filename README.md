@@ -19,6 +19,49 @@ Control your Android device from anywhere in the world! **Scrcpy Remote Hub** is
 - **Notification Sync** to push phone alerts directly to your Windows desktop.
 
 ---
+## Workflow
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant BAT as run_hub.bat
+    participant JAVA as ScrcpyRemoteHub.java
+    participant ADB as adb.exe
+    participant NET as Tailscale / VPN
+    participant ADBD as adbd (ADB Daemon)
+    participant SRV as scrcpy-server
+    participant HW as Hardware API
+
+    BAT->>JAVA: Launch & compile .class files into /bin
+    Note over BAT,JAVA: Automation Engine fetches missing binaries<br/>from GitHub → extracts to /tools
+
+    JAVA->>JAVA: Load saved device IP from /data/profiles.properties
+    Note over JAVA: Process Manager thread starts,<br/>monitors all background tasks
+
+    JAVA->>ADB: User clicks "Connect" → send TcpIp command
+    ADB->>NET: Route command through Tailscale tunnel (100.x.x.x)
+    Note over ADB,NET: Global VPN path — phone appears<br/>as local device to the PC
+
+    NET->>ADBD: Encrypted command arrives at phone port 5555
+    Note over ADBD: ADB Daemon wakes up,<br/>handshake established ✅
+
+    ADBD->>SRV: Push scrcpy-server.jar → /data/local/tmp & start
+    Note over SRV: scrcpy-server runs natively on device,<br/>captures screen & awaits input injection
+
+    SRV-->>JAVA: Stream H.264 video data via Socket
+    JAVA-->>SRV: Send Touch / Keyboard events via Socket
+    Note over JAVA,SRV: 🔁 Live bidirectional loop —<br/>Video (H.264) + Audio (OPUS/AAC) ↔ Input Events
+
+    JAVA->>ADB: Shell command → trigger Stealth Capture
+    ADB->>ADBD: Forward shell command to device
+    ADBD->>HW: Invoke Camera API / Microphone API
+    HW-->>JAVA: Pull captured Screenshot / Audio recording
+    Note over JAVA: Save output to /Screenshots<br/>or /Recordings vault 🗄️
+
+    JAVA-->>BAT: Signal process exit (clean shutdown)
+    Note over BAT,JAVA: Process Manager closes ADB,<br/>Scrcpy & Audio threads — no zombie processes 🧹
+```
+---
 
 ## SCREENSHOT
 
